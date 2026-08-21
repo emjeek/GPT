@@ -1,0 +1,1 @@
+Trigger stable signing workflow for RedNote v1.1.
