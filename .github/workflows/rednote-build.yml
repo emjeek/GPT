@@ -33,6 +33,7 @@ jobs:
           mkdir -p rednote
           cat ci/rednote-source.part-* | base64 -d > /tmp/rednote-source.tar.gz
           tar -xzf /tmp/rednote-source.tar.gz -C rednote
+          sed -i '/org.jetbrains.kotlin.android/d' rednote/build.gradle.kts rednote/app/build.gradle.kts
 
       - name: Generate Gradle wrapper
         working-directory: rednote
