@@ -1,0 +1,67 @@
+name: RedNote v1.1 Stable Sign
+
+on:
+  pull_request:
+    branches: [rednote-ci-base-20260821]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download verified RedNote v1.1 build
+        uses: actions/download-artifact@v4
+        with:
+          name: RedNote-v1.1-build
+          path: input
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: emjeek/GPT
+          run-id: 32497747541
+
+      - name: Generate permanent personal signing key and sign APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          PASS=$(openssl rand -hex 24)
+          keytool -genkeypair -v \
+            -keystore out/RedNote-personal-signing.jks \
+            -storepass "$PASS" \
+            -keypass "$PASS" \
+            -alias rednote \
+            -keyalg RSA \
+            -keysize 4096 \
+            -validity 10000 \
+            -dname "CN=RedNote Personal,O=Personal,C=AU"
+          printf '%s\n' "$PASS" > out/RedNote-signing-password.txt
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)
+          test -n "$APKSIGNER"
+          "$APKSIGNER" sign \
+            --ks out/RedNote-personal-signing.jks \
+            --ks-key-alias rednote \
+            --ks-pass "pass:$PASS" \
+            --key-pass "pass:$PASS" \
+            --out out/RedNote-v1.1-personal-debug.apk \
+            input/RedNote-v1.1-debug.apk
+          "$APKSIGNER" sign \
+            --ks out/RedNote-personal-signing.jks \
+            --ks-key-alias rednote \
+            --ks-pass "pass:$PASS" \
+            --key-pass "pass:$PASS" \
+            --out out/RedNote-v1.1-personal-release.apk \
+            input/RedNote-v1.1-release-unsigned.apk
+          "$APKSIGNER" verify --verbose --print-certs out/RedNote-v1.1-personal-debug.apk > out/RedNote-v1.1-debug-signature.txt
+          "$APKSIGNER" verify --verbose --print-certs out/RedNote-v1.1-personal-release.apk > out/RedNote-v1.1-release-signature.txt
+          sha256sum out/*.apk out/*.jks > out/SHA256SUMS-signed-v1.1.txt
+
+      - name: Upload stable signed RedNote package
+        uses: actions/upload-artifact@v4
+        with:
+          name: RedNote-v1.1-signed
+          path: out/*
+          if-no-files-found: error
+          retention-days: 14
