@@ -1,0 +1,1 @@
+Trigger RedNote v1.1 Android CI build after transcript cleanup integration.
