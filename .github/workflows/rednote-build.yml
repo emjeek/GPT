@@ -26,7 +26,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Rehydrate RedNote source
+      - name: Rehydrate and patch RedNote source
         shell: bash
         run: |
           set -euo pipefail
@@ -35,6 +35,23 @@ jobs:
           tar -xzf /tmp/rednote-source.tar.gz -C rednote
           sed -i '/org.jetbrains.kotlin.android/d' rednote/build.gradle.kts rednote/app/build.gradle.kts
           sed -i 's/compileSdk = 36/compileSdk = 37/' rednote/app/build.gradle.kts
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('rednote')
+          p = root / 'app/src/main/java/com/personal/rednote/audio/RecordingService.kt'
+          s = p.read_text().replace('while (isActive && recorder != null) {', 'while (kotlin.coroutines.coroutineContext.isActive && recorder != null) {')
+          p.write_text(s)
+          p = root / 'app/src/main/java/com/personal/rednote/ui/Components.kt'
+          s = p.read_text()
+          if 'import androidx.compose.material.icons.rounded.Settings\n' not in s:
+              s = s.replace('import androidx.compose.material.icons.rounded.Mic\n', 'import androidx.compose.material.icons.rounded.Mic\nimport androidx.compose.material.icons.rounded.Settings\nimport androidx.compose.material.icons.rounded.Description\n')
+          p.write_text(s)
+          p = root / 'app/src/main/java/com/personal/rednote/ui/TranscriptScreen.kt'
+          s = p.read_text()
+          if 'import androidx.compose.foundation.clickable\n' not in s:
+              s = s.replace('import androidx.compose.foundation.background\n', 'import androidx.compose.foundation.background\nimport androidx.compose.foundation.clickable\n')
+          p.write_text(s)
+          PY
 
       - name: Generate Gradle wrapper
         working-directory: rednote
