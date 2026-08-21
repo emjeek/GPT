@@ -67,9 +67,9 @@ jobs:
           p.write_text(s)
           PY
 
-          cat ci/rednote-cleanup-patch.part-* | base64 -d > /tmp/rednote-cleanup-patch.tar.gz
+          cat ci/rednote-cleanup-small.part-* | base64 -d > /tmp/rednote-cleanup-patch.tar.gz
           tar -xzf /tmp/rednote-cleanup-patch.tar.gz -C rednote
-          base64 -d ci/rednote-legacy-hotfix.b64 > /tmp/rednote-legacy-hotfix.tar.gz
+          cat ci/rednote-hot-small.part-* | base64 -d > /tmp/rednote-legacy-hotfix.tar.gz
           tar -xzf /tmp/rednote-legacy-hotfix.tar.gz -C rednote
 
       - name: Generate Gradle wrapper
