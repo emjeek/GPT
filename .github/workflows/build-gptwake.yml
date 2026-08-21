@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - build/gptwake-hey-chatgpt
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
