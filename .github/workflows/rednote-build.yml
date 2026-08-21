@@ -49,6 +49,11 @@ jobs:
           s = s.replace('            val routedName = graph.audioDevices.label(runCatching { current.routedDevice }.getOrNull())', '            val routedName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {\n                graph.audioDevices.label(runCatching { current.routedDevice }.getOrNull())\n            } else {\n                chosenDeviceName.orEmpty()\n            }')
           p.write_text(s)
 
+          p = root / 'app/src/main/java/com/personal/rednote/audio/MediaChunker.kt'
+          s = p.read_text()
+          s = s.replace('                info.flags = extractor.sampleFlags\n', '''                val sampleFlags = extractor.sampleFlags\n                info.flags = if (sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {\n                    android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME\n                } else {\n                    0\n                }\n''')
+          p.write_text(s)
+
           p = root / 'app/src/main/java/com/personal/rednote/ui/Components.kt'
           s = p.read_text()
           if 'import androidx.compose.material.icons.rounded.Settings\n' not in s:
