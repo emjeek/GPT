@@ -67,6 +67,11 @@ jobs:
           p.write_text(s)
           PY
 
+          cat ci/rednote-cleanup-patch.part-* | base64 -d > /tmp/rednote-cleanup-patch.tar.gz
+          tar -xzf /tmp/rednote-cleanup-patch.tar.gz -C rednote
+          base64 -d ci/rednote-legacy-hotfix.b64 > /tmp/rednote-legacy-hotfix.tar.gz
+          tar -xzf /tmp/rednote-legacy-hotfix.tar.gz -C rednote
+
       - name: Generate Gradle wrapper
         working-directory: rednote
         run: gradle wrapper --gradle-version 9.5.0
@@ -90,19 +95,19 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p rednote/ci-output
-          cp rednote/app/build/outputs/apk/debug/app-debug.apk rednote/ci-output/RedNote-debug.apk
+          cp rednote/app/build/outputs/apk/debug/app-debug.apk rednote/ci-output/RedNote-v1.1-debug.apk
           if [ -f rednote/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-            cp rednote/app/build/outputs/apk/release/app-release-unsigned.apk rednote/ci-output/RedNote-release-unsigned.apk
+            cp rednote/app/build/outputs/apk/release/app-release-unsigned.apk rednote/ci-output/RedNote-v1.1-release-unsigned.apk
           fi
           rm -rf rednote/.gradle rednote/app/build
-          (cd rednote && zip -qr ci-output/RedNote-source.zip . -x 'ci-output/*')
-          sha256sum rednote/ci-output/* > rednote/ci-output/SHA256SUMS.txt
+          (cd rednote && zip -qr ci-output/RedNote-v1.1-source.zip . -x 'ci-output/*')
+          sha256sum rednote/ci-output/* > rednote/ci-output/SHA256SUMS-v1.1.txt
 
       - name: Upload RedNote build
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: RedNote-build
+          name: RedNote-v1.1-build
           path: rednote/ci-output/*
           if-no-files-found: error
           retention-days: 14
