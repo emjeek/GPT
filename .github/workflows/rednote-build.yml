@@ -38,14 +38,23 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           root = Path('rednote')
+
           p = root / 'app/src/main/java/com/personal/rednote/audio/RecordingService.kt'
-          s = p.read_text().replace('while (isActive && recorder != null) {', 'while (kotlin.coroutines.coroutineContext.isActive && recorder != null) {')
+          s = p.read_text()
+          if 'import android.os.Build\n' not in s:
+              s = s.replace('import android.os.IBinder\n', 'import android.os.Build\nimport android.os.IBinder\n')
+          s = s.replace('while (isActive && recorder != null) {', 'while (kotlin.coroutines.coroutineContext.isActive && recorder != null) {')
+          s = s.replace('                selected?.let { setPreferredDevice(it) }', '                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {\n                    selected?.let { setPreferredDevice(it) }\n                }')
+          s = s.replace('            val routed = recorder?.routedDevice', '            val routed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) recorder?.routedDevice else selected')
+          s = s.replace('            val routedName = graph.audioDevices.label(runCatching { current.routedDevice }.getOrNull())', '            val routedName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {\n                graph.audioDevices.label(runCatching { current.routedDevice }.getOrNull())\n            } else {\n                chosenDeviceName.orEmpty()\n            }')
           p.write_text(s)
+
           p = root / 'app/src/main/java/com/personal/rednote/ui/Components.kt'
           s = p.read_text()
           if 'import androidx.compose.material.icons.rounded.Settings\n' not in s:
               s = s.replace('import androidx.compose.material.icons.rounded.Mic\n', 'import androidx.compose.material.icons.rounded.Mic\nimport androidx.compose.material.icons.rounded.Settings\nimport androidx.compose.material.icons.rounded.Description\n')
           p.write_text(s)
+
           p = root / 'app/src/main/java/com/personal/rednote/ui/TranscriptScreen.kt'
           s = p.read_text()
           if 'import androidx.compose.foundation.clickable\n' not in s:
@@ -59,7 +68,16 @@ jobs:
 
       - name: Unit tests, lint, and APK builds
         working-directory: rednote
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleRelease --stacktrace
+        shell: bash
+        run: |
+          set +e
+          ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleRelease --stacktrace
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo '--- lint text reports ---'
+            find app/build -name 'lint-results-debug.txt' -type f -print -exec cat {} \; 2>/dev/null || true
+          fi
+          exit "$status"
 
       - name: Collect artifacts
         if: success()
